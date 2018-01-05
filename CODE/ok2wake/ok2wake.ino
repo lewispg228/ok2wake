@@ -20,10 +20,9 @@ boolean light_status = false; // used to know if the light is already on or off,
 int time_hour = 16;
 int time_minute = 57;
 int time_sec = 0;
-int time_mili = 0;
 
-int alarm_hour = 10;
-int alarm_minute = 56;
+int alarm_hour = 16;
+int alarm_minute = 46;
 int alarm_sec = 0;
 
 long unsigned a_millis = 1000;
@@ -56,6 +55,7 @@ void setup()
 
 void loop() 
 {
+  check_alarm();
 
   /// RTC stuff begin
 
@@ -91,13 +91,37 @@ void loop()
   client.flush();
 
   // Match the request
+  boolean alarm_change = false;
   int val = -1; // We'll use 'val' to keep track of both the
                 // request type (read/set) and value if set.
   if (req.indexOf("/led/0") != -1)
     val = 1; // Will write LED high
   else if (req.indexOf("/led/1") != -1)
     val = 0; // Will write LED low
+  else if (req.indexOf("/alarm_hour/") != -1)
+  {
+    alarm_change = true;
+    alarm_flag = true;  
+    for(int i = 1 ; i <= 23 ; i++)
+    {
+      String temp = "/alarm_hour/";
+      temp += String(i);
+      if (req.indexOf(temp) != -1) alarm_hour = i;
+    }
+  }
+  else if (req.indexOf("/alarm_minute/") != -1)
+  {
+    alarm_change = true;  
+    for(int i = 0 ; i <= 55 ; i += 5)
+    {
+      String temp = "/alarm_minute/";
+      temp += String(i);
+      if (req.indexOf(temp) != -1) alarm_minute = i;
+    }
+  }  
+           
   // Otherwise request will be invalid. We'll say as much in HTML
+
 
   if(readLight() > 7) light_status = true;
   else light_status = false;
@@ -130,6 +154,10 @@ void loop()
     s += "LED is now ";
     s += (val)?"off":"on";
   }
+  else if (alarm_change)
+  {
+    s += "New alarm time set";
+  }  
   else
   {
     s += "Invalid Request.<br> Try /led/1, /led/0, or /read.";
@@ -158,16 +186,43 @@ void loop()
   s += String(alarm_minute);
   s += ":";
   s += String(alarm_sec);
-  s += "<br>"; // Go to the next line.
 
-//  for(int hour = 0 ; hour < 13 ; hour++ )
-//  {
-//    s += "<p></p><a href=\"http://192.168.4.1/alarm_hour/";
-//    s += String(hour);
-//    s += "\">";
-//    s += String(hour);
-//    s += "</a>";
-//  }
+  s += "<br><br>"; // Go to the next line.
+  s += "SET ALARM HOUR";
+  s += "<br><br>"; // Go to the next line.
+  for(int i = 1 ; i <= 12 ; i++ )
+  {
+    s += "<a href=\"http://192.168.4.1/alarm_hour/";
+    s += String(i);
+    s += "\">";
+    s += String(i);
+    s += "</a>";
+    s += "  ";
+  }
+
+  s += "<br><br>"; // Go to the next line.
+  for(int i = 13 ; i <= 23 ; i++ )
+  {
+    s += "<a href=\"http://192.168.4.1/alarm_hour/";
+    s += String(i);
+    s += "\">";
+    s += String(i);
+    s += "</a>";
+    s += "  ";
+  }  
+
+  s += "<br><br>"; // Go to the next line.
+  s += "SET ALARM MINUTE";
+  s += "<br><br>"; // Go to the next line.
+  for(int i = 0 ; i <= 55 ; i += 5 )
+  {
+    s += "<a href=\"http://192.168.4.1/alarm_minute/";
+    s += String(i);
+    s += "\">";
+    s += String(i);
+    s += "</a>";
+    s += " ";
+  }  
   
   s += "</font>";
   s += "</div>";
@@ -261,14 +316,15 @@ void rtc_init()
   // Or you can use the rtc.setTime(s, m, h, day, date, month, year)
   // function to explicitly set the time:
   // e.g. 7:32:16 | Monday October 31, 2016:
-  rtc.setTime(1, 11, 17, 3, 31, 10, 16);  // Uncomment to manually set time
+  
+  //rtc.setTime(1, 41, 16, 3, 4, 1, 18);  // Uncomment to manually set time
+  
   // rtc.set12Hour(); // Use rtc.set12Hour to set to 12-hour mode
 }
 
 void printTime()
 {
   Serial.print(String(rtc.hour()) + ":"); // Print hour
-  time_hour = rtc.hour();
   if (rtc.minute() < 10)
     Serial.print('0'); // Print leading '0' for minute
   Serial.print(String(rtc.minute()) + ":"); // Print minute
